@@ -135,6 +135,19 @@
     min-height: 40px;
   }
 
+  .errors-count {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+    font-style: italic;
+  }
+
+  .no-errors {
+    font-size: 0.85rem;
+    color: #5A8A5A;
+    font-style: italic;
+  }
+
   button.copy-btn {
     margin-top: 1rem;
     width: 100%;
@@ -206,6 +219,7 @@
   <div class="result-section" id="result-section">
     <hr class="divider">
     <p class="field-label">Message corrigé</p>
+    <p class="errors-count" id="errors-count"></p>
     <p class="result-text" id="result-text"></p>
     <button class="copy-btn" id="copy-btn" onclick="copier()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
@@ -224,25 +238,45 @@ async function corriger() {
   const btn = document.getElementById('btn');
   const section = document.getElementById('result-section');
   const out = document.getElementById('result-text');
+  const errCount = document.getElementById('errors-count');
 
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner"></div> Correction en cours…';
   section.classList.remove('visible');
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const params = new URLSearchParams();
+    params.append('text', input);
+    params.append('language', 'fr');
+    params.append('enabledOnly', 'false');
+
+    const res = await fetch('https://api.languagetool.org/v2/check', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: "Tu es un correcteur orthographique et grammatical expert en français. Corrige le texte : orthographe, grammaire, conjugaison, accords, ponctuation. Conserve strictement le ton, le style, les emojis et la familiarité du message original. Retourne UNIQUEMENT le texte corrigé, sans explication, sans guillemets, sans commentaire.",
-        messages: [{ role: 'user', content: input }]
-      })
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params
     });
 
     const data = await res.json();
-    out.textContent = data.content?.[0]?.text || '';
+    const matches = data.matches || [];
+
+    if (matches.length === 0) {
+      out.innerHTML = '<span class="no-errors">Aucune erreur détectée — ton message est impeccable ✓</span>';
+      errCount.textContent = '';
+    } else {
+      let corrected = input;
+      const sorted = [...matches].sort((a, b) => b.offset - a.offset);
+      for (const match of sorted) {
+        if (match.replacements && match.replacements.length > 0) {
+          const before = corrected.substring(0, match.offset);
+          const after = corrected.substring(match.offset + match.length);
+          corrected = before + match.replacements[0].value + after;
+        }
+      }
+      out.textContent = corrected;
+      const n = matches.length;
+      errCount.textContent = n === 1 ? '1 correction effectuée' : `${n} corrections effectuées`;
+    }
+
     section.classList.add('visible');
 
     const copyBtn = document.getElementById('copy-btn');
@@ -250,7 +284,8 @@ async function corriger() {
     copyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copier';
 
   } catch(e) {
-    out.textContent = 'Une erreur est survenue. Réessaie.';
+    out.textContent = 'Une erreur est survenue. Vérifie ta connexion et réessaie.';
+    errCount.textContent = '';
     section.classList.add('visible');
   }
 
