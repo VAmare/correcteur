@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Correcteur</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F4EF;
+    --surface: #FFFFFF;
+    --text: #1A1814;
+    --muted: #7A7570;
+    --border: #E2DDD8;
+    --accent: #2C2C2A;
+    --gold: #A67C52;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 2rem 1.25rem 3rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards;
+  }
+
+  header h1 {
+    font-family: 'Lora', serif;
+    font-size: 1.75rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  header p {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 0.4rem;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 480px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.15s forwards;
+  }
+
+  .field-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 130px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.875rem 1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: var(--text);
+    background: var(--bg);
+    resize: vertical;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  textarea::placeholder { color: #BDB9B4; }
+  textarea:focus { outline: none; border-color: var(--gold); }
+
+  button.main-btn {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.875rem;
+    background: var(--accent);
+    color: #F7F4EF;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  button.main-btn:hover { opacity: 0.85; }
+  button.main-btn:active { transform: scale(0.98); }
+  button.main-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.25rem 0;
+  }
+
+  .result-section { display: none; }
+  .result-section.visible { display: block; }
+
+  .result-text {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    min-height: 40px;
+  }
+
+  button.copy-btn {
+    margin-top: 1rem;
+    width: 100%;
+    padding: 0.75rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  button.copy-btn:hover { background: var(--bg); color: var(--text); }
+
+  button.copy-btn.copied {
+    color: #5A8A5A;
+    border-color: #C5DCC5;
+    background: #F0F7F0;
+  }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(247,244,239,0.3);
+    border-top-color: #F7F4EF;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  .note {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 1rem;
+    font-weight: 300;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.3s forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Correcteur</h1>
+  <p>Orthographe &amp; grammaire</p>
+</header>
+
+<div class="card">
+  <p class="field-label">Ton message</p>
+  <textarea id="input" placeholder="Colle ton texte ici avant de l'envoyer…"></textarea>
+  <button class="main-btn" id="btn" onclick="corriger()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.88 5.76a1 1 0 00.95.69H21l-4.94 3.58a1 1 0 00-.36 1.12L17.58 20 12 16.1 6.42 20l1.88-5.85a1 1 0 00-.36-1.12L3 9.45h6.17a1 1 0 00.95-.69L12 3z"/></svg>
+    Corriger
+  </button>
+
+  <div class="result-section" id="result-section">
+    <hr class="divider">
+    <p class="field-label">Message corrigé</p>
+    <p class="result-text" id="result-text"></p>
+    <button class="copy-btn" id="copy-btn" onclick="copier()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      Copier
+    </button>
+  </div>
+</div>
+
+<p class="note">Tes messages ne sont pas conservés</p>
+
+<script>
+async function corriger() {
+  const input = document.getElementById('input').value.trim();
+  if (!input) return;
+
+  const btn = document.getElementById('btn');
+  const section = document.getElementById('result-section');
+  const out = document.getElementById('result-text');
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Correction en cours…';
+  section.classList.remove('visible');
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: "Tu es un correcteur orthographique et grammatical expert en français. Corrige le texte : orthographe, grammaire, conjugaison, accords, ponctuation. Conserve strictement le ton, le style, les emojis et la familiarité du message original. Retourne UNIQUEMENT le texte corrigé, sans explication, sans guillemets, sans commentaire.",
+        messages: [{ role: 'user', content: input }]
+      })
+    });
+
+    const data = await res.json();
+    out.textContent = data.content?.[0]?.text || '';
+    section.classList.add('visible');
+
+    const copyBtn = document.getElementById('copy-btn');
+    copyBtn.className = 'copy-btn';
+    copyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copier';
+
+  } catch(e) {
+    out.textContent = 'Une erreur est survenue. Réessaie.';
+    section.classList.add('visible');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.88 5.76a1 1 0 00.95.69H21l-4.94 3.58a1 1 0 00-.36 1.12L17.58 20 12 16.1 6.42 20l1.88-5.85a1 1 0 00-.36-1.12L3 9.45h6.17a1 1 0 00.95-.69L12 3z"/></svg> Corriger';
+}
+
+async function copier() {
+  const text = document.getElementById('result-text').textContent;
+  const btn = document.getElementById('copy-btn');
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.className = 'copy-btn copied';
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copié !';
+    setTimeout(() => {
+      btn.className = 'copy-btn';
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copier';
+    }, 2500);
+  } catch(e) {}
+}
+</script>
+</body>
+</html>
