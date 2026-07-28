@@ -8,8 +8,8 @@
   :root {
     --bg: #0f1115;
     --card: #1a1d24;
-    --accent: #6ea8fe;
-    --accent-soft: rgba(110, 168, 254, 0.15);
+    --accent: #a78bfa;
+    --accent-soft: rgba(167, 139, 250, 0.15);
     --text: #e8e9ec;
     --text-dim: #9a9fab;
     --border: #2a2d36;
@@ -55,7 +55,7 @@
 
   .paste-btn:active {
     transform: scale(0.97);
-    background: rgba(110, 168, 254, 0.25);
+    background: rgba(167, 139, 250, 0.25);
   }
 
   .paste-btn.pasted {
@@ -225,25 +225,53 @@ function effacer() {
   document.getElementById('result-section').classList.remove('visible');
 }
 
+function confirmerCollage(btn) {
+  btn.textContent = '✓ Collé';
+  btn.classList.add('pasted');
+  setTimeout(() => {
+    btn.textContent = '📋 Coller le texte';
+    btn.classList.remove('pasted');
+  }, 1200);
+}
+
 async function collerDepuisPressePapier() {
   const btn = document.getElementById('top-paste-btn');
+  const input = document.getElementById('input');
+
+  // Tentative 1 : API clipboard standard
   try {
     const texte = await navigator.clipboard.readText();
     if (texte) {
-      const input = document.getElementById('input');
       input.value = texte;
       onInputChange();
-      btn.textContent = '✓ Collé';
-      btn.classList.add('pasted');
-      setTimeout(() => {
-        btn.textContent = '📋 Coller le texte';
-        btn.classList.remove('pasted');
-      }, 1200);
+      confirmerCollage(btn);
+      return;
     }
   } catch (e) {
-    // Le presse-papier peut être inaccessible (permissions) — on redonne le focus au champ
-    document.getElementById('input').focus();
+    // On tente une méthode alternative avant d'abandonner
   }
+
+  // Tentative 2 : execCommand via le champ, plus tolérant sur iOS
+  // quand le texte source provient d'un champ encore en édition
+  try {
+    input.focus();
+    input.value = '';
+    const succes = document.execCommand && document.execCommand('paste');
+    if (succes && input.value) {
+      onInputChange();
+      confirmerCollage(btn);
+      return;
+    }
+  } catch (e) {
+    // Rien à faire, on passe au message d'aide
+  }
+
+  // Dernier recours : on guide vers le collage manuel
+  input.focus();
+  btn.textContent = '👇 Appuie longuement dans le champ ci-dessous';
+  setTimeout(() => {
+    btn.textContent = '📋 Coller le texte';
+  }, 2500);
 }
 
 async function corriger() {
