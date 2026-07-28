@@ -287,37 +287,27 @@ async function corriger() {
   btn.innerHTML = '<div class="spinner"></div> Correction en cours…';
   section.classList.remove('visible');
 
-  try {
-    const params = new URLSearchParams();
-    params.append('text', input);
-    params.append('language', 'fr');
-    params.append('enabledOnly', 'false');
+  // Remplace par l'adresse de ton Worker Cloudflare une fois déployé
+  const WORKER_URL = 'https://correcteur-claude.d8pmjb7zyp.workers.dev';
 
-    const res = await fetch('https://api.languagetool.org/v2/check', {
+  try {
+    const res = await fetch(WORKER_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: input })
     });
 
     const data = await res.json();
-    const matches = data.matches || [];
 
-    if (matches.length === 0) {
+    if (!res.ok || data.error) {
+      out.textContent = 'Erreur : ' + (data.error || 'réponse invalide du serveur');
+      errCount.textContent = '';
+    } else if (data.corrected.trim() === input.trim()) {
       out.innerHTML = '<span class="no-errors">Aucune erreur détectée — ton message est impeccable ✓</span>';
       errCount.textContent = '';
     } else {
-      let corrected = input;
-      const sorted = [...matches].sort((a, b) => b.offset - a.offset);
-      for (const match of sorted) {
-        if (match.replacements && match.replacements.length > 0) {
-          const before = corrected.substring(0, match.offset);
-          const after = corrected.substring(match.offset + match.length);
-          corrected = before + match.replacements[0].value + after;
-        }
-      }
-      out.textContent = corrected;
-      const n = matches.length;
-      errCount.textContent = n === 1 ? '1 correction effectuée' : `${n} corrections effectuées`;
+      out.textContent = data.corrected;
+      errCount.textContent = 'Correction effectuée';
     }
 
     section.classList.add('visible');
