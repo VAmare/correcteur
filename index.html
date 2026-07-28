@@ -210,9 +210,38 @@
     <div id="result-text"></div>
   </div>
 
+  <p class="note" id="usage-note">Coût estimé depuis le début : $0.0000</p>
   <p class="note">Tes messages ne sont pas conservés</p>
 
+
 <script>
+// ── Tarification Claude Haiku 4.5 (à mettre à jour si Anthropic change ses prix) ──
+// Prix par MILLION de tokens, en dollars US
+const PRIX_INPUT_PAR_MILLION = 1.00;
+const PRIX_OUTPUT_PAR_MILLION = 5.00;
+// ────────────────────────────────────────────────────────────────────────────────
+
+function chargerCoutCumule() {
+  const sauvegarde = localStorage.getItem('correcteur_cout_cumule');
+  return sauvegarde ? parseFloat(sauvegarde) : 0;
+}
+
+function afficherCout(cout) {
+  document.getElementById('usage-note').textContent =
+    'Coût estimé depuis le début : $' + cout.toFixed(4);
+}
+
+function ajouterUsage(inputTokens, outputTokens) {
+  const cout = chargerCoutCumule()
+    + (inputTokens / 1_000_000) * PRIX_INPUT_PAR_MILLION
+    + (outputTokens / 1_000_000) * PRIX_OUTPUT_PAR_MILLION;
+  localStorage.setItem('correcteur_cout_cumule', cout.toString());
+  afficherCout(cout);
+}
+
+// Affiche le coût déjà accumulé dès l'ouverture de la page
+window.addEventListener('DOMContentLoaded', () => afficherCout(chargerCoutCumule()));
+
 function onInputChange() {
   const input = document.getElementById('input');
   const clearBtn = document.getElementById('clear-btn');
@@ -308,6 +337,10 @@ async function corriger() {
     } else {
       out.textContent = data.corrected;
       errCount.textContent = 'Correction effectuée';
+    }
+
+    if (data.usage) {
+      ajouterUsage(data.usage.input_tokens, data.usage.output_tokens);
     }
 
     section.classList.add('visible');
